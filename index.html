@@ -1241,6 +1241,7 @@ function advance() {
   switch(gs.phase){
     case'START':
       if(gs.mode === 'quidditch'){
+        stopBgMusic(); // pause main menu music before Quidditch starts
         document.getElementById('quidFrame').src = 'quidditch.html?autostart=1';
         document.getElementById('quidOverlay').style.display = 'block';
       } else {
@@ -1561,6 +1562,7 @@ function init() {
   document.getElementById('quidBackBtn').addEventListener('click', () => {
     document.getElementById('quidFrame').src = '';
     document.getElementById('quidOverlay').style.display = 'none';
+    startBgMusic(); // resume main menu music
   });
 
   hitAudio = new Audio(fileUrl("The memory behind our Expecto Patronum #HarryPotter #Dementors #Patronus.mp3"));
