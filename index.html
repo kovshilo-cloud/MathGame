@@ -1580,9 +1580,11 @@ function init() {
     }
   });
 
-  // Restore last used name
+  // Restore last used name, clear on focus
   const savedName = localStorage.getItem('mathgame_name') || '';
-  document.getElementById('nameInput').value = savedName;
+  const nameInput = document.getElementById('nameInput');
+  nameInput.value = savedName;
+  nameInput.addEventListener('focus', () => { nameInput.value = ''; });
 
   gs.harry=new Harry(); hideOrbs(); updBtn();
   lastT=performance.now();
