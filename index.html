@@ -1239,7 +1239,14 @@ function updatePlaying(dt) {
 
 function advance() {
   switch(gs.phase){
-    case'START':            startLevel(0);    break;
+    case'START':
+      if(gs.mode === 'quidditch'){
+        document.getElementById('quidFrame').src = 'quidditch.html?autostart=1';
+        document.getElementById('quidOverlay').style.display = 'block';
+      } else {
+        startLevel(0);
+      }
+      break;
     case'LEVEL_TRANSITION': startLevel(gs.li);break;
     case'GAME_OVER':
     case'VICTORY':          resetGame();      break;
@@ -1546,8 +1553,10 @@ function init() {
     document.getElementById('modeQuidBtn').className = 'modeBtn inactive';
   });
   document.getElementById('modeQuidBtn').addEventListener('click', () => {
-    document.getElementById('quidFrame').src = 'quidditch.html?autostart=1';
-    document.getElementById('quidOverlay').style.display = 'block';
+    gs.mode = 'quidditch';
+    document.getElementById('modeAddBtn').className  = 'modeBtn inactive';
+    document.getElementById('modeMultBtn').className = 'modeBtn inactive';
+    document.getElementById('modeQuidBtn').className = 'modeBtn active';
   });
   document.getElementById('quidBackBtn').addEventListener('click', () => {
     document.getElementById('quidFrame').src = '';
