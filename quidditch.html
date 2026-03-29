@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quidditch Math - Fraction Seeker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a3a6a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Georgia', serif;
+    overflow: auto;
+  }
+  #gameWrapper {
+    position: relative;
+    width: 900px;
+    height: 600px;
+    flex-shrink: 0;
+  }
+  canvas {
+    display: block;
+    box-shadow: 0 0 30px #ffd700, 0 0 60px #ffd70066;
+    border-radius: 4px;
+  }
+  #hud {
+    position: absolute;
+    top: 8px;
+    left: 190px;
+    width: 520px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  #stopBtn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 20;
+    padding: 5px 12px;
+    font-size: 13px;
+    font-family: 'Georgia', serif;
+    font-weight: bold;
+    color: #ffaaaa;
+    background: rgba(60, 0, 0, 0.78);
+    border: 1.5px solid rgba(255, 100, 100, 0.6);
+    border-radius: 7px;
+    cursor: pointer;
+    display: none;
+    transition: all 0.15s;
+  }
+  #stopBtn:hover { background: rgba(120, 0, 0, 0.90); color: #ffcccc; transform: scale(1.06); }
+  #hudTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ffd700;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px #000, 0 0 8px #000;
+    padding: 2px 6px;
+    background: rgba(0,0,0,0.38);
+    border-radius: 6px;
+    margin-bottom: 4px;
+  }
+  #progressBarWrap {
+    background: rgba(0,0,0,0.4);
+    border-radius: 8px;
+    padding: 2px 6px;
+    color: #ffd700;
+    font-size: 12px;
+    text-align: center;
+  }
+  #progressBar {
+    width: 100%;
+    height: 10px;
+    background: #333;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 2px;
+  }
+  #progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ff8c00);
+    width: 0%;
+    border-radius: 5px;
+  }
+  #questionPanel {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 470px;
+    background: rgba(25, 0, 55, 0.94);
+    border: 2px solid #ffd700;
+    border-radius: 12px;
+    padding: 14px 18px 12px;
+    z-index: 20;
+    display: none;
+    box-shadow: 0 0 24px #ffd70066;
+  }
+  #questionText {
+    color: #fff;
+    font-size: 18px;
+    text-align: center;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  #timerBarWrap {
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  #timerBar {
+    height: 100%;
+    width: 100%;
+    background: #00cc44;
+    border-radius: 4px;
+  }
+  #answerButtons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  .answerBtn {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #ffd700;
+    background: linear-gradient(135deg, #3a006e, #5a009e);
+    border: 2px solid #ffd700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Georgia', serif;
+  }
+  .answerBtn:hover { background: linear-gradient(135deg, #5a009e, #7a00ce); transform: scale(1.03); }
+  .answerBtn.correct { background: linear-gradient(135deg, #006600, #00aa00) !important; border-color: #00ff44 !important; }
+  .answerBtn.wrong   { background: linear-gradient(135deg, #660000, #aa0000) !important; border-color: #ff4444 !important; }
+  .keyHint { font-size: 12px; color: #aaa; margin-top: 6px; text-align: center; }
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    vertical-align: middle;
+    margin: 0 3px;
+    line-height: 1.15;
+    font-size: 0.9em;
+  }
+  .frac .fn { border-bottom: 2px solid currentColor; padding: 0 4px 2px; }
+  .frac .fd { padding: 2px 4px 0; }
+  .mixed-whole {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 2px;
+  }
+  .screen {
+    position: absolute;
+    top: 0; left: 0;
+    width: 900px; height: 600px;
+    background: rgba(10, 0, 30, 0.93);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    color: #ffd700;
+    text-align: center;
+  }
+  .screen h1 { font-size: 36px; text-shadow: 0 0 20px #ffd700; margin-bottom: 12px; }
+  .screen h2 { font-size: 26px; margin-bottom: 10px; }
+  .screen p  { font-size: 15px; color: #ddd; margin-bottom: 8px; max-width: 620px; line-height: 1.55; }
+  .score-display { font-size: 24px; color: #ffd700; margin: 10px 0; }
+  .bigBtn {
+    margin-top: 18px;
+    padding: 13px 34px;
+    font-size: 19px;
+    font-weight: bold;
+    color: #ffd700;
+    background: linear-gradient(135deg, #3a006e, #5a009e);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    box-shadow: 0 0 12px #ffd70066;
+    transition: all 0.15s;
+  }
+  .bigBtn:hover { background: linear-gradient(135deg, #5a009e, #8800ee); transform: scale(1.05); }
+  #confettiCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 900px; height: 600px;
+    pointer-events: none;
+    z-index: 45;
+    display: none;
+  }
+  #debugSelector { margin-top: 14px; }
+  .dbgBtn {
+    margin: 3px;
+    padding: 5px 13px;
+    font-size: 13px;
+    color: #ffd700;
+    background: rgba(0,0,50,0.70);
+    border: 1px solid #ffd700;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+  }
+  .dbgBtn.active { background: rgba(100,0,160,0.85); box-shadow: 0 0 6px #ffd700; }
+  @media (max-width: 1380px) {
+    #gameWrapper { transform-origin: center center; }
+  }
+
+  /* ── LEADERBOARD ── */
+  #nameInputWrap { margin-top: 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  #nameInputWrap label { font-size: 13px; color: #ccc; }
+  #nameInput {
+    padding: 8px 14px;
+    font-size: 15px;
+    font-family: 'Georgia', serif;
+    color: #ffd700;
+    background: rgba(0, 0, 40, 0.85);
+    border: 2px solid rgba(255, 215, 0, 0.45);
+    border-radius: 8px;
+    outline: none;
+    width: 220px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+  #nameInput::placeholder { color: rgba(255,215,0,0.3); }
+  #nameInput:focus { border-color: #ffd700; box-shadow: 0 0 10px #ffd70055; }
+  .startBtnRow { display: flex; gap: 16px; margin-top: 18px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .smallBtn {
+    padding: 9px 20px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #ffd700;
+    background: rgba(20, 0, 60, 0.80);
+    border: 2px solid rgba(255,215,0,0.55);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    box-shadow: 0 0 8px #ffd70033;
+    transition: all 0.15s;
+  }
+  .smallBtn:hover { background: rgba(60, 0, 130, 0.90); transform: scale(1.05); }
+  .toggleBtn {
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.15s;
+  }
+  .toggleBtn.on {
+    border: 2px solid rgba(100,255,150,0.8);
+    background: rgba(0,50,15,0.88);
+    color: #80ffaa;
+    text-shadow: 0 0 8px #40ff80;
+    box-shadow: 0 0 10px rgba(50,220,90,0.35);
+  }
+  .toggleBtn.off {
+    border: 2px solid rgba(255,80,80,0.7);
+    background: rgba(45,0,0,0.88);
+    color: #ff9999;
+    text-shadow: 0 0 8px #ff4444;
+    box-shadow: 0 0 8px rgba(220,50,50,0.3);
+  }
+  .toggleBtn:hover { transform: scale(1.06); }
+  #lbScreen { flex-direction: column; }
+  #lbTable { width: 560px; border-collapse: collapse; margin: 10px 0 16px; }
+  #lbTable thead tr { border-bottom: 1.5px solid rgba(255,215,0,0.35); }
+  #lbTable th { color: rgba(255,215,0,0.65); font-size: 12px; padding: 4px 10px; letter-spacing: 0.05em; font-weight: normal; text-transform: uppercase; }
+  #lbTable th.num { text-align: right; }
+  #lbTable tbody tr { border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.1s; }
+  #lbTable tbody tr:hover { background: rgba(255,215,0,0.05); }
+  #lbTable td { padding: 8px 10px; font-size: 14px; color: #ddd; }
+  #lbTable td.num { text-align: right; }
+  #lbTable tr.rank1 td { color: #ffd700; font-weight: bold; font-size: 15px; }
+  #lbTable tr.rank2 td { color: #e8e8e8; }
+  #lbTable tr.rank3 td { color: #d4a567; }
+  .lbBtnRow { display: flex; gap: 14px; margin-top: 4px; justify-content: center; }
+  .resetBtn {
+    padding: 8px 18px;
+    font-size: 13px;
+    font-family: 'Georgia', serif;
+    color: rgba(255,100,100,0.85);
+    background: rgba(40,0,0,0.7);
+    border: 1.5px solid rgba(255,100,100,0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .resetBtn:hover { background: rgba(100,0,0,0.85); color: #ff8888; transform: scale(1.04); }
+</style>
+</head>
+<body>
+<div id="gameWrapper">
+  <canvas id="gameCanvas" width="900" height="600"></canvas>
+  <canvas id="confettiCanvas" width="900" height="600"></canvas>
+
+  <!-- Stop Button -->
+  <button id="stopBtn">⏹ Menu</button>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hudTop">
+      <span id="hudScore">Score: 0</span>
+      <span id="hudLevel">Level 1/5</span>
+      <span id="hudLives">❤️❤️❤️</span>
+    </div>
+    <div id="progressBarWrap">
+      🧹 Journey to the Snitch 🏆
+      <div id="progressBar"><div id="progressFill"></div></div>
+    </div>
+  </div>
+
+  <!-- Question Panel -->
+  <div id="questionPanel">
+    <div id="questionText"></div>
+    <div id="timerBarWrap"><div id="timerBar"></div></div>
+    <div id="answerButtons">
+      <button class="answerBtn" id="btnA">A: </button>
+      <button class="answerBtn" id="btnB">B: </button>
+    </div>
+    <div class="keyHint">Keyboard: A / ← / 1 = Option A &nbsp;|&nbsp; D / → / 2 = Option B</div>
+  </div>
+
+  <!-- Start Screen -->
+  <div class="screen" id="startScreen">
+    <a href="index.html" style="position:absolute;top:16px;left:16px;color:rgba(255,215,0,0.7);font-size:13px;font-family:Georgia,serif;text-decoration:none;border:1px solid rgba(255,215,0,0.35);padding:5px 12px;border-radius:7px;background:rgba(0,0,30,0.6);">← Math Game Menu</a>
+    <h1>⚡ Quidditch Math ⚡</h1>
+    <div id="nameInputWrap">
+      <label for="nameInput">Enter your name:</label>
+      <input id="nameInput" type="text" maxlength="18" placeholder="Anonymous" autocomplete="off">
+    </div>
+    <div class="startBtnRow">
+      <button class="bigBtn" id="startBtn" style="margin-top:0">🧹 Mount Your Broom!</button>
+      <button class="smallBtn" id="lbOpenBtn">🏆 Leaderboard</button>
+    </div>
+    <div class="startBtnRow" style="margin-top:10px;">
+      <button class="toggleBtn on" id="musicToggleBtn">♪ Music: ON</button>
+      <button class="toggleBtn on" id="sfxToggleBtn">♦ Sounds: ON</button>
+    </div>
+    <div id="debugSelector">
+      <span style="font-size:12px;color:#aaa;">Debug — start at level: </span>
+      <button class="dbgBtn active" onclick="setDebugLevel(1)">1</button>
+      <button class="dbgBtn" onclick="setDebugLevel(2)">2</button>
+      <button class="dbgBtn" onclick="setDebugLevel(3)">3</button>
+      <button class="dbgBtn" onclick="setDebugLevel(4)">4</button>
+      <button class="dbgBtn" onclick="setDebugLevel(5)">5</button>
+    </div>
+  </div>
+
+  <!-- Level Done Screen -->
+  <div class="screen" id="levelScreen" style="display:none;">
+    <h2 id="levelTitle">Level 1 Complete!</h2>
+    <p id="levelDesc"></p>
+    <div class="score-display" id="levelScore"></div>
+    <button class="bigBtn" id="flyOnBtn">Fly On! →</button>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div class="screen" id="gameOverScreen" style="display:none;">
+    <h1>💔 Game Over!</h1>
+    <p>Harry was knocked off his broom…</p>
+    <div class="score-display" id="gameOverScore"></div>
+    <button class="bigBtn" id="tryAgainBtn">Try Again!</button>
+  </div>
+
+  <!-- Victory Screen -->
+  <div class="screen" id="victoryScreen" style="display:none;">
+    <h1>⚡ Harry caught the Snitch! ⚡</h1>
+    <p>Gryffindor wins! The crowd goes wild!</p>
+    <div class="score-display" id="victoryScore"></div>
+    <div class="startBtnRow">
+      <button class="bigBtn" id="playAgainBtn" style="margin-top:0">Play Again!</button>
+      <button class="smallBtn" id="victoryLbBtn">🏆 Leaderboard</button>
+    </div>
+  </div>
+
+  <!-- Leaderboard Screen -->
+  <div class="screen" id="lbScreen" style="display:none;">
+    <h1 style="font-size:30px;text-shadow:0 0 20px #ffd700;margin-bottom:4px;">🏆 Leaderboard</h1>
+    <p style="font-size:13px;color:#bbb;margin-bottom:2px;">Top scores — Quidditch Math</p>
+    <table id="lbTable">
+      <thead>
+        <tr>
+          <th style="width:44px">#</th>
+          <th style="text-align:left">Name</th>
+          <th class="num" style="width:80px">Score</th>
+          <th class="num" style="width:110px">Date</th>
+          <th class="num" style="width:70px">Time</th>
+        </tr>
+      </thead>
+      <tbody id="lbBody"></tbody>
+    </table>
+    <div class="lbBtnRow">
+      <button class="bigBtn" id="lbBackBtn" style="margin-top:0">← Main Menu</button>
+      <button class="resetBtn" id="lbResetBtn">🗑 Reset Scores</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ── CANVAS ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+const W = 900, H = 600;
+
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+let musicEnabled = true;
+let sfxEnabled   = true;
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function fileUrl(name) {
+  return name.replace(/ /g, '%20').replace(/#/g, '%23');
+}
+
+function playNote(freq, type, vol, dur, when) {
+  if (!sfxEnabled) return;
+  try {
+    const ac = getAudio();
+    const t  = when != null ? when : ac.currentTime;
+    const osc  = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = type || 'triangle';
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(vol || 0.05, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + (dur || 0.3));
+    osc.start(t);
+    osc.stop(t + (dur || 0.3) + 0.05);
+  } catch(e) {}
+}
+
+// ── BACKGROUND MUSIC (HTMLAudioElement, loops 3:45–4:00) ─────────────────────
+const bgAudio = new Audio(fileUrl("Hedwig's Theme (Theme from Harry Potter).mp3"));
+bgAudio.volume  = 0.55;
+bgAudio.preload = 'auto';
+
+bgAudio.addEventListener('timeupdate', () => {
+  if (bgAudio.currentTime >= 240) bgAudio.currentTime = 225;
+});
+bgAudio.addEventListener('ended', () => {
+  bgAudio.currentTime = 225;
+  bgAudio.play().catch(() => {});
+});
+
+function startBgMusic() {
+  if (!musicEnabled) return;
+  getAudio();
+  bgAudio.currentTime = 225;
+  bgAudio.play().catch(() => {});
+}
+
+function stopBgMusic() {
+  bgAudio.pause();
+  bgAudio.currentTime = 225;
+}
+
+function sfxOK() {
+  const ac = getAudio(), t = ac.currentTime;
+  [523, 659, 784].forEach((f, i) => playNote(f, 'triangle', 0.12, 0.2, t + i * 0.1));
+}
+function sfxHit() {
+  if (!sfxEnabled) return;
+  try {
+    const ac = getAudio();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, ac.currentTime);
+    osc.frequency.linearRampToValueAtTime(150, ac.currentTime + 0.45);
+    gain.gain.setValueAtTime(0.15, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.5);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + 0.55);
+  } catch (e) {}
+}
+function sfxLvl() {
+  const ac = getAudio(), t = ac.currentTime;
+  [523, 659, 784, 1046].forEach((f, i) => playNote(f, 'triangle', 0.12, 0.28, t + i * 0.14));
+}
+function sfxWin() {
+  const ac = getAudio(), t = ac.currentTime;
+  [523, 659, 784, 659, 784, 1046, 784, 1046, 1319].forEach((f, i) =>
+    playNote(f, 'triangle', 0.12, 0.28, t + i * 0.16));
+}
+
+// ── LEVEL CONFIG ──────────────────────────────────────────────────────────────
+const LEVELS = [
+  { qs:3, time:15, scrollSpeed:0.55, wMin:1,wMax:2, dMin:2,dMax:4, dir:'mix' },
+  { qs:4, time:12, scrollSpeed:0.80, wMin:1,wMax:3, dMin:2,dMax:5, dir:'mix' },
+  { qs:4, time:10, scrollSpeed:1.10, wMin:1,wMax:3, dMin:2,dMax:5, dir:'mix' },
+  { qs:5, time:8,  scrollSpeed:1.45, wMin:2,wMax:4, dMin:2,dMax:6, dir:'mix' },
+  { qs:5, time:6,  scrollSpeed:1.85, wMin:2,wMax:4, dMin:2,dMax:6, dir:'mix' },
+];
+
+// ── DEBUG ─────────────────────────────────────────────────────────────────────
+let debugStartLevel = 0; // 0-indexed
+const DEBUG_SCROLL_STARTS = [0, 780, 1560, 2340, 3120];
+function setDebugLevel(n) {
+  debugStartLevel = n - 1;
+  document.querySelectorAll('.dbgBtn').forEach((b, i) => {
+    b.classList.toggle('active', i === debugStartLevel);
+  });
+}
+
+// ── SUPABASE LEADERBOARD ──────────────────────────────────────────────────────
+const SB_URL = 'https://gyeealcrnwvlpeiuvfqc.supabase.co';
+const SB_KEY = 'sb_publishable_Qzb4h7pVXZUFU4i9QG8Wug_bVe2QEHX';
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+  return text ? JSON.parse(text) : null;
+}
+
+async function saveScore() {
+  const nameEl = document.getElementById('nameInput');
+  const name = (nameEl.value.trim() || 'Anonymous').substring(0, 18);
+  localStorage.setItem('quidditch_name', name);
+  const now = new Date();
+  sbFetch('leaderboard', {
+    method: 'POST',
+    body: JSON.stringify({
+      name, score, mode: 'quidditch',
+      date: now.toLocaleDateString(),
+      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }),
+  }).catch(() => {});
+}
+
+async function renderLeaderboard() {
+  const body = document.getElementById('lbBody');
+  body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:rgba(200,180,230,0.55);padding:22px">Loading\u2026</td></tr>';
+  let rows = [];
+  try {
+    rows = await sbFetch('leaderboard?mode=eq.quidditch&order=score.desc&limit=10&select=name,score,date,time') || [];
+  } catch(e) { rows = []; }
+  const medals = ['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'];
+  body.innerHTML = '';
+  if (rows.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:rgba(200,180,230,0.55);padding:22px">No scores yet \u2014 be the first!</td></tr>';
+    return;
+  }
+  rows.forEach((e, i) => {
+    const tr = document.createElement('tr');
+    if (i === 0) tr.className = 'rank1';
+    else if (i === 1) tr.className = 'rank2';
+    else if (i === 2) tr.className = 'rank3';
+    const rank = i < 3 ? medals[i] : `${i + 1}.`;
+    tr.innerHTML =
+      `<td>${rank}</td><td>${e.name}</td>` +
+      `<td class="num">${e.score}</td>` +
+      `<td class="num">${e.date}</td>` +
+      `<td class="num">${e.time || ''}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function showLeaderboard(returnToVictory) {
+  document.getElementById('startScreen').style.display   = 'none';
+  document.getElementById('victoryScreen').style.display = 'none';
+  renderLeaderboard();
+  const lb = document.getElementById('lbScreen');
+  lb.dataset.returnVictory = returnToVictory ? '1' : '';
+  lb.style.display = 'flex';
+}
+
+function hideLeaderboard() {
+  const lb = document.getElementById('lbScreen');
+  lb.style.display = 'none';
+  if (lb.dataset.returnVictory === '1') {
+    document.getElementById('victoryScreen').style.display = 'flex';
+  } else {
+    document.getElementById('startScreen').style.display = 'flex';
+  }
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let state = 'start';
+let scrollX = 0;
+let score = 0;
+let lives = 5;
+let currentLevel = 0;
+let questionsAnswered = 0;
+let totalQsThisLevel = 0;
+let lvlScrollSpeed = 0.12;
+let catchWorldX = 4300;  // set dynamically when catching starts
+let catchPhase  = 0;     // 0=approaching, 1=caught (hold), timer→victory
+let catchTimer  = 0;
+let catchAlpha  = 0;     // fades catching goal posts in from 0→1 over first ~80 frames
+
+// Harry
+const HARRY_X = 260, HARRY_Y = 252;
+let harryBoost = 0;
+let harryDodge = 0;
+let harryDodgeTimer = 0;
+let harryDodgeDir = 1;
+let harryHit = false;
+let harryHitTimer = 0;
+
+// Bludger
+let bludger = null;
+
+// Particles & confetti
+let particles = [];
+let confetti  = [];
+
+// Clouds (world x, screen y, radius)
+const CLOUDS = [
+  {wx:200,y:62,r:42},{wx:580,y:78,r:32},{wx:980,y:52,r:46},
+  {wx:1380,y:72,r:36},{wx:1820,y:56,r:50},{wx:2300,y:76,r:38},
+  {wx:2750,y:60,r:44},{wx:3150,y:82,r:34},{wx:3600,y:66,r:46},
+  {wx:4050,y:54,r:40},{wx:430,y:92,r:28},{wx:1180,y:44,r:34},
+  {wx:2080,y:86,r:30},{wx:2980,y:48,r:38},{wx:3480,y:79,r:35},
+];
+
+// Question
+let qData  = null;
+let qPending = false;
+let qTimer   = 0;
+let qCorrect = false;
+
+// Snitch animation
+let snitchT  = 0;
+let snitchGl = 0;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+// ── FRACTION HELPERS ──────────────────────────────────────────────────────────
+function fracHTML(num, den) {
+  return `<span class="frac"><span class="fn">${num}</span><span class="fd">${den}</span></span>`;
+}
+function mixedHTML(whole, num, den) {
+  return `<span class="mixed-whole">${whole}</span>${fracHTML(num, den)}`;
+}
+
+// ── FRACTION QUESTION GENERATOR ───────────────────────────────────────────────
+function makeQuestion(lvlIdx) {
+  const cfg = LEVELS[lvlIdx];
+
+  // Pick direction for this question
+  let dir = cfg.dir;
+  if (dir === 'mix') dir = Math.random() < 0.5 ? 'm2i' : 'i2m';
+
+  const whole = randInt(cfg.wMin, cfg.wMax);
+  const den   = randInt(cfg.dMin, cfg.dMax);
+  const num   = randInt(1, den - 1);
+  const iNum  = whole * den + num;   // improper numerator
+
+  const cIdx = Math.random() < 0.5 ? 0 : 1;
+
+  if (dir === 'm2i') {
+    // ── Mixed → Improper ──────────────────────────────────────────────────
+    let wNum;
+    do {
+      const d = randInt(-3, 3);
+      wNum = iNum + d + (d >= 0 ? 1 : 0);
+    } while (wNum === iNum || wNum <= den || wNum < 2);
+
+    const optAHTML = cIdx === 0 ? fracHTML(iNum, den) : fracHTML(wNum, den);
+    const optBHTML = cIdx === 1 ? fracHTML(iNum, den) : fracHTML(wNum, den);
+    return {
+      textHTML: `Convert to an improper fraction: ${mixedHTML(whole, num, den)}`,
+      optAHTML, optBHTML, cIdx,
+      timeLimit: cfg.time * 1000, startTime: Date.now(),
+      answered: false, correct: false, cStr: `${iNum}/${den}`
+    };
+
+  } else {
+    // ── Improper → Mixed ──────────────────────────────────────────────────
+    let wWhole, wNum;
+    do {
+      if (Math.random() < 0.5) {
+        wWhole = whole + (Math.random() < 0.5 ? 1 : -1);
+        wNum   = num;
+      } else {
+        wWhole = whole;
+        wNum   = num + (Math.random() < 0.5 ? 1 : -1);
+      }
+    } while (wWhole < 1 || wNum < 1 || wNum >= den || (wWhole === whole && wNum === num));
+
+    const optAHTML = cIdx === 0 ? mixedHTML(whole, num, den) : mixedHTML(wWhole, wNum, den);
+    const optBHTML = cIdx === 1 ? mixedHTML(whole, num, den) : mixedHTML(wWhole, wNum, den);
+    return {
+      textHTML: `Convert to a mixed number: ${fracHTML(iNum, den)}`,
+      optAHTML, optBHTML, cIdx,
+      timeLimit: cfg.time * 1000, startTime: Date.now(),
+      answered: false, correct: false, cStr: `${whole} ${num}/${den}`
+    };
+  }
+}
+
+// ── BLUDGER SPAWN ─────────────────────────────────────────────────────────────
+function spawnBludger() {
+  const cfg = LEVELS[currentLevel];
+  const frames = cfg.time * 60;
+  const startX = W + 40;
+  const targetY = HARRY_Y + (Math.random() * 80 - 40);
+  bludger = {
+    x: startX,
+    y: HARRY_Y,
+    vx: -(startX - HARRY_X) / frames,
+    vy:  (targetY - HARRY_Y) / frames,
+    active: true,
+    deflected: false,
+    deflectCountdown: 0,
+    hit: false,
+    angle: 0,
+    spin: 0.09
+  };
+}
+
+// ── LIFE LOSS ─────────────────────────────────────────────────────────────────
+function loseLife() {
+  lives = Math.max(0, lives - 1);
+  refreshLivesHUD();
+  harryHit = true;
+  harryHitTimer = 45;
+  sfxHit();
+  if (lives <= 0) {
+    setTimeout(() => transitionTo('gameOver'), 1000);
+  }
+}
+
+// ── HUD ───────────────────────────────────────────────────────────────────────
+function refreshHUD() {
+  document.getElementById('hudScore').textContent = 'Score: ' + score;
+  document.getElementById('hudLevel').textContent = 'Level ' + (currentLevel + 1) + '/5';
+  refreshLivesHUD();
+  const pct = Math.min(100, (scrollX / 4300) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  const inGame = state === 'playing' || state === 'question' || state === 'catching';
+  document.getElementById('stopBtn').style.display = inGame ? 'block' : 'none';
+}
+function refreshLivesHUD() {
+  let s = '';
+  for (let i = 0; i < lives; i++) s += '❤️';
+  for (let i = lives; i < 5; i++) s += '🖤';
+  document.getElementById('hudLives').textContent = s;
+}
+
+// ── QUESTION SHOW/HIDE ────────────────────────────────────────────────────────
+function showQuestion() {
+  qData = makeQuestion(currentLevel);
+  spawnBludger();
+
+  document.getElementById('questionText').innerHTML = qData.textHTML;
+  document.getElementById('btnA').innerHTML = 'A: ' + qData.optAHTML;
+  document.getElementById('btnB').innerHTML = 'B: ' + qData.optBHTML;
+  document.getElementById('btnA').className = 'answerBtn';
+  document.getElementById('btnB').className = 'answerBtn';
+  document.getElementById('timerBar').style.width = '100%';
+  document.getElementById('timerBar').style.background = '#00cc44';
+  document.getElementById('questionPanel').style.display = 'block';
+  state = 'question';
+}
+function hideQuestion() {
+  document.getElementById('questionPanel').style.display = 'none';
+  qData = null;
+}
+
+// ── ANSWER HANDLER ────────────────────────────────────────────────────────────
+function handleAnswer(idx) {
+  if (!qData || qData.answered) return;
+  qData.answered = true;
+
+  const elapsed = Date.now() - qData.startTime;
+  const ratio   = Math.max(0, 1 - elapsed / qData.timeLimit);
+  const correct = (idx === qData.cIdx);
+  qData.correct = correct;
+
+  if (correct) {
+    let pts = 1;
+    if (ratio > 0.6) pts = 3;
+    else if (ratio > 0.3) pts = 2;
+    score += pts;
+    sfxOK();
+    document.getElementById(idx === 0 ? 'btnA' : 'btnB').classList.add('correct');
+
+    // Bludger: keep hurtling in for a beat, then deflect dramatically
+    if (bludger && bludger.active && !bludger.hit) {
+      bludger.deflectCountdown = 12; // ~12 frames of near-miss before deflect
+    }
+    // Harry dodge — big dramatic swerve
+    harryDodgeDir  = Math.random() < 0.5 ? 1 : -1;
+    harryDodge     = 0;
+    harryDodgeTimer = 40;
+    // Scroll boost
+    scrollX += 150;
+    harryBoost = 25;
+  } else {
+    document.getElementById(idx === 0 ? 'btnA' : 'btnB').classList.add('wrong');
+    document.getElementById(idx === 1 ? 'btnA' : 'btnB').classList.add('correct');
+    // Bludger snaps to Harry
+    if (bludger && bludger.active) {
+      bludger.hit = true;
+      bludger.x = HARRY_X;
+      bludger.y = HARRY_Y + harryDodge;
+    }
+    loseLife();
+  }
+
+  qPending = true;
+  qCorrect = correct;
+  qTimer   = 90;
+}
+
+// ── SCREEN TRANSITIONS ────────────────────────────────────────────────────────
+let qSchedule = null;
+function scheduleNextQ() {
+  if (qSchedule) clearTimeout(qSchedule);
+  const delay = 1400 + Math.random() * 900;
+  qSchedule = setTimeout(() => {
+    if (state === 'playing') showQuestion();
+  }, delay);
+}
+
+function hideAllScreens() {
+  ['startScreen','levelScreen','gameOverScreen','victoryScreen'].forEach(id =>
+    document.getElementById(id).style.display = 'none');
+  hideQuestion();
+}
+
+function transitionTo(newState) {
+  hideAllScreens();
+
+  if (newState === 'start') {
+    state = 'start';
+    document.getElementById('startScreen').style.display = 'flex';
+
+  } else if (newState === 'playing') {
+    state = 'playing';
+    questionsAnswered  = 0;
+    totalQsThisLevel   = LEVELS[currentLevel].qs;
+    lvlScrollSpeed     = LEVELS[currentLevel].scrollSpeed;
+    refreshHUD();
+    scheduleNextQ();
+
+  } else if (newState === 'levelDone') {
+    state = 'levelDone';
+    sfxLvl();
+    const n = currentLevel + 1;
+    document.getElementById('levelTitle').textContent = `Level ${n} Complete!`;
+    if (currentLevel < LEVELS.length - 1) {
+      const nxt = LEVELS[currentLevel + 1];
+      document.getElementById('levelDesc').textContent =
+        `Next: Level ${n+1} — ${nxt.qs} questions, ${nxt.time}s each, faster speed!`;
+    } else {
+      document.getElementById('levelDesc').textContent =
+        'All levels complete! Now go catch the Snitch!';
+    }
+    document.getElementById('levelScore').textContent = 'Score: ' + score;
+    document.getElementById('levelScreen').style.display = 'flex';
+
+  } else if (newState === 'catching') {
+    state = 'catching';
+    lvlScrollSpeed = 0.6;
+    catchWorldX = scrollX + 620;
+    catchPhase  = 0;
+    catchTimer  = 0;
+    catchAlpha  = 0;  // goal posts fade in from zero
+
+  } else if (newState === 'gameOver') {
+    state = 'gameOver';
+    stopBgMusic();
+    document.getElementById('gameOverScore').textContent = 'Final Score: ' + score;
+    document.getElementById('gameOverScreen').style.display = 'flex';
+
+  } else if (newState === 'victory') {
+    state = 'victory';
+    stopBgMusic();
+    sfxWin();
+    spawnConfetti();
+    saveScore();
+    document.getElementById('confettiCanvas').style.display = 'block';
+    document.getElementById('victoryScore').textContent = 'Final Score: ' + score;
+    document.getElementById('victoryScreen').style.display = 'flex';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function initGame() {
+  currentLevel = debugStartLevel;
+  scrollX = DEBUG_SCROLL_STARTS[debugStartLevel];
+  score = 0;
+  lives = 5;
+  questionsAnswered = 0;
+  harryBoost = 0;
+  harryDodge = 0;
+  harryDodgeTimer = 0;
+  harryHit = false;
+  harryHitTimer = 0;
+  bludger = null;
+  particles = [];
+  confetti  = [];
+  qData = null;
+  qPending = false;
+  document.getElementById('confettiCanvas').style.display = 'none';
+  // Restore saved player name
+  const savedName = localStorage.getItem('quidditch_name') || '';
+  const qNameInput = document.getElementById('nameInput');
+  if (savedName) qNameInput.value = savedName;
+  qNameInput.addEventListener('focus', () => { qNameInput.value = ''; });
+  refreshHUD();
+}
+
+// ── HOGWARTS HOUSE COLOURS ────────────────────────────────────────────────────
+const HOUSES = [
+  { name:'Gryffindor', seat1:'#9b0000', seat2:'#ffd700', stone:'#9a7060', pillar:'#b09070', arch:'#1a0800' },
+  { name:'Slytherin',  seat1:'#1c5c1c', seat2:'#c0c0c0', stone:'#607068', pillar:'#7a8878', arch:'#061006' },
+  { name:'Hufflepuff', seat1:'#d4b800', seat2:'#1a1a1a', stone:'#857045', pillar:'#a08850', arch:'#100e00' },
+  { name:'Ravenclaw',  seat1:'#0d2b8a', seat2:'#7a4d12', stone:'#4a5878', pillar:'#607090', arch:'#000918' },
+];
+
+// ── DRAW: DISTANT STANDS (Hogwarts houses, full width, high above Harry) ──────
+function drawDistantStands(grassY) {
+  const standTop = 28;
+  const crowdBot = 185;  // crowd ends here — above Harry's head (~y=224)
+  const standW   = 195;  // width of each house section
+  const gapW     = 30;   // visible gap (sky) between sections
+  const stepW    = standW + gapW;   // 225px per step
+  const cycleW   = stepW * 4;       // full 4-house cycle
+
+  const par      = 1.6;
+  const offset   = (scrollX * par) % cycleW;
+  const baseTile = Math.floor((scrollX * par) / stepW);
+
+  for (let t = -2; t <= 6; t++) {
+    const bx = t * stepW - offset;
+    if (bx + standW < 0 || bx > W) continue;
+    const hi = ((baseTile + t) % 4 + 4) % 4;
+    drawStandTile(bx, standTop, standW, grassY - standTop, crowdBot - standTop, hi);
+  }
+
+  // Blend top of stands into sky
+  const fade = ctx.createLinearGradient(0, standTop, 0, standTop + 32);
+  fade.addColorStop(0, 'rgba(70,184,255,1)');
+  fade.addColorStop(1, 'rgba(70,184,255,0)');
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, standTop, W, 32);
+}
+
+function drawStandTile(x, y, w, totalH, crowdH, hi) {
+  const house = HOUSES[hi];
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+
+  // ── SEATING AREA (top crowdH pixels) ────────────────────────────────────
+  // Stone terracing background
+  const sg = ctx.createLinearGradient(x, y, x, y + crowdH);
+  sg.addColorStop(0, house.stone);
+  sg.addColorStop(1, '#5a4a3a');
+  ctx.fillStyle = sg;
+  ctx.fillRect(x, y, w, crowdH);
+
+  // Seat rows (alternating house colours)
+  const rowH  = 17;
+  const nRows = Math.floor(crowdH / rowH);
+  for (let r = 0; r < nRows; r++) {
+    const ry = y + r * rowH;
+    ctx.fillStyle = r % 2 === 0 ? house.seat1 : house.seat2;
+    ctx.fillRect(x, ry, w, rowH - 2);
+    // Crowd heads
+    for (let px = x + 7; px < x + w - 4; px += 13) {
+      ctx.fillStyle = '#f5d49a';
+      ctx.beginPath(); ctx.arc(px, ry + rowH * 0.55, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = ['#111','#5a2d0c','#c8980a','#1a2a5a'][(Math.floor(px/13)+r)%4];
+      ctx.beginPath(); ctx.arc(px, ry + rowH * 0.55 - 3.5, 3.5, Math.PI, 0); ctx.fill();
+    }
+  }
+
+  // Front railing of stand
+  ctx.fillStyle = '#4a3010';
+  ctx.fillRect(x, y + crowdH - 5, w, 7);
+
+  // House banner hanging from railing
+  const bw = 26, bh = 38;
+  const bx = x + w / 2 - bw / 2;
+  const bannerY = y + crowdH + 2;
+  ctx.fillStyle = house.seat1;
+  ctx.fillRect(bx, bannerY, bw, bh);
+  ctx.fillStyle = house.seat2;
+  ctx.fillRect(bx + 3, bannerY + 5,  bw - 6, 7);
+  ctx.fillRect(bx + 3, bannerY + 22, bw - 6, 7);
+
+  ctx.restore();
+}
+
+// ── DRAW: CLOUD ───────────────────────────────────────────────────────────────
+function drawCloud(cx, cy, r) {
+  ctx.fillStyle = 'rgba(255,255,255,0.86)';
+  ctx.beginPath();
+  ctx.arc(cx,        cy,       r,        0, Math.PI*2);
+  ctx.arc(cx+r*0.72, cy-r*0.3, r*0.72,   0, Math.PI*2);
+  ctx.arc(cx-r*0.6,  cy-r*0.2, r*0.6,    0, Math.PI*2);
+  ctx.arc(cx+r*1.35, cy,       r*0.55,   0, Math.PI*2);
+  ctx.fill();
+}
+
+// ── DRAW: BACKGROUND ─────────────────────────────────────────────────────────
+function drawBg() {
+  const grassY = H * 0.60;
+
+  // Sky — full width, daytime
+  const skyH = grassY;
+  const sg = ctx.createLinearGradient(0, 0, 0, skyH);
+  sg.addColorStop(0,   '#4db8ff');
+  sg.addColorStop(0.55,'#70c8ff');
+  sg.addColorStop(1,   '#a8dbff');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, 0, W, skyH);
+
+  // Clouds (parallax 0.4×)
+  CLOUDS.forEach(c => {
+    const sx = c.wx - scrollX * 0.4;
+    if (sx > -120 && sx < W + 120) drawCloud(sx, c.y, c.r);
+  });
+
+  // Grass — extends from stand-base top (185) all the way to bottom,
+  // so gap areas between stands and the stand base both show identical grass
+  const STAND_BOT = 185;
+  const gg = ctx.createLinearGradient(0, grassY, 0, H);
+  gg.addColorStop(0, '#2a8a1a');
+  gg.addColorStop(1, '#0c4c0c');
+  ctx.fillStyle = gg;
+  ctx.fillRect(0, STAND_BOT, W, H - STAND_BOT);
+
+  // Stripes (1× parallax) — same extent as grass
+  const sw = 60;
+  const so = scrollX % (sw * 2);
+  for (let x = -so; x < W; x += sw * 2) {
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
+    ctx.fillRect(x, STAND_BOT, sw, H - STAND_BOT);
+  }
+
+
+  // Stands drawn last so they sit on top of the grass (gaps show grass through)
+  drawDistantStands(grassY);
+}
+
+// ── DRAW: GOAL POSTS ─────────────────────────────────────────────────────────
+function drawGoalPosts(worldX, extraFade = 1) {
+  const sx = worldX - scrollX;
+  // Scale fade zones with current speed so fade takes same number of frames at any speed
+  const spd       = Math.max(0.55, lvlScrollSpeed);
+  const scale     = spd / 0.55;
+  const zoneIn    = Math.round(220 * scale);   // px wide fade-in band on right edge
+  const zoneOut   = Math.round(180 * scale);   // px wide fade-out band on left edge
+  const rightEdge = W + 60 + zoneIn;
+  const leftEdge  = -60 - zoneOut;
+
+  if (sx < leftEdge || sx > rightEdge) return;
+
+  // Fade in from right, fade out to left
+  const fadeIn  = Math.min(1, (rightEdge - sx) / zoneIn);
+  const fadeOut = Math.min(1, (sx - leftEdge)  / zoneOut);
+  const alpha   = Math.min(fadeIn, fadeOut) * extraFade;
+  if (alpha <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  const groundY = 420;
+  const poles = [
+    {ox:-38, tipY:198, rr:25},
+    {ox:  0, tipY:142, rr:28},
+    {ox: 38, tipY:198, rr:25},
+  ];
+
+  poles.forEach(p => {
+    const px = sx + p.ox;
+    // Pole
+    const pg = ctx.createLinearGradient(px-5,0,px+5,0);
+    pg.addColorStop(0,   '#8b6914');
+    pg.addColorStop(0.3, '#ffd700');
+    pg.addColorStop(0.7, '#ffa500');
+    pg.addColorStop(1,   '#8b6914');
+    ctx.fillStyle = pg;
+    ctx.fillRect(px-5, p.tipY, 10, groundY - p.tipY);
+
+    // Hoop
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 5;
+    ctx.shadowColor = '#ffa500';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(px, p.tipY, p.rr, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Hoop highlight
+    ctx.strokeStyle = 'rgba(255,255,180,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, p.tipY, p.rr - 3, Math.PI, 0);
+    ctx.stroke();
+  });
+
+  // Cross-bar
+  const bg = ctx.createLinearGradient(sx-60,0,sx+60,0);
+  bg.addColorStop(0,   '#8b6914');
+  bg.addColorStop(0.5, '#ffd700');
+  bg.addColorStop(1,   '#8b6914');
+  ctx.fillStyle = bg;
+  ctx.fillRect(sx-43, groundY-12, 86, 10);
+
+  ctx.restore();
+}
+
+// ── DRAW: SNITCH ─────────────────────────────────────────────────────────────
+function drawSnitch() {
+  const WX = catchWorldX, WY = 148;
+  let sx, sy;
+  if (catchPhase === 1) {
+    // Snitch held in Harry's outstretched hand (screen-space, accounting for lean)
+    sx = HARRY_X + 38;
+    sy = HARRY_Y - 22;
+  } else {
+    sx = WX - scrollX;
+    // Frantic flutter as Harry closes in
+    const dist = sx - (HARRY_X + 42);
+    const panic = dist < 200 ? (1 + (200 - dist) / 80) : 1;
+    sy = WY + Math.sin(snitchT * 0.05 * panic) * 9 * panic;
+    if (sx < 140 || sx > W + 60) return;
+  }
+
+  ctx.save();
+
+  // Glow halo
+  const halo = ctx.createRadialGradient(sx,sy,0,sx,sy,32);
+  halo.addColorStop(0, `rgba(255,215,0,${0.28 + Math.sin(snitchGl) * 0.18})`);
+  halo.addColorStop(1, 'rgba(255,215,0,0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(sx, sy, 32, 0, Math.PI*2); ctx.fill();
+
+  // Body
+  const bd = ctx.createRadialGradient(sx-3, sy-3, 1, sx, sy, 10);
+  bd.addColorStop(0,   '#fffab0');
+  bd.addColorStop(0.4, '#ffd700');
+  bd.addColorStop(1,   '#8b6914');
+  ctx.fillStyle = bd;
+  ctx.beginPath(); ctx.arc(sx, sy, 10, 0, Math.PI*2); ctx.fill();
+
+  // Wings
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(Math.sin(snitchT * 0.13) * 0.28);
+  ctx.fillStyle   = 'rgba(210,235,255,0.72)';
+  ctx.strokeStyle = 'rgba(140,195,255,0.8)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(-16,-4,14,7,-0.3,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse( 16,-4,14,7, 0.3,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+// ── DRAW: HARRY POTTER ───────────────────────────────────────────────────────
+function drawHarry() {
+  const bx = HARRY_X;
+  const by = HARRY_Y + harryDodge;
+
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.rotate(-0.18); // lean forward
+
+  // Flash alpha on hit
+  if (harryHit && Math.floor(harryHitTimer / 5) % 2 === 0) {
+    ctx.globalAlpha = 0.45;
+  }
+
+  // Harry flies RIGHT → tip of broom is RIGHT (+x), bristles trail LEFT (−x)
+  const broomY = 24; // broom sits under the rider's legs
+
+  // ── FIREBOLT ─────────────────────────────────────────────────────────────
+  // Handle (left=bristle end, right=tip)
+  const hg = ctx.createLinearGradient(-78, broomY, 82, broomY);
+  hg.addColorStop(0,   '#2e1500');
+  hg.addColorStop(0.4, '#5a3010');
+  hg.addColorStop(0.75,'#4a2800');
+  hg.addColorStop(1,   '#7a5020');
+  ctx.fillStyle = hg;
+  ctx.fillRect(-78, broomY - 3, 160, 6);
+
+  // Tapered tip (RIGHT / forward)
+  ctx.fillStyle = '#8a6030';
+  ctx.beginPath();
+  ctx.moveTo(82, broomY - 3);
+  ctx.lineTo(94, broomY);
+  ctx.lineTo(82, broomY + 3);
+  ctx.fill();
+
+  // Gold rings
+  [-30, -5, 20, 45].forEach(rx => {
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(rx - 1, broomY - 4, 3, 8);
+  });
+
+  // Bristle base block (LEFT / back)
+  ctx.fillStyle = '#5a3800';
+  ctx.fillRect(-90, broomY - 9, 13, 18);
+
+  // Bristles fan out to the LEFT (trailing behind)
+  ctx.strokeStyle = '#3d2200';
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 16; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-88, broomY - 8 + i);
+    ctx.lineTo(-108 - (i % 3) * 4, broomY - 11 + i * 1.3);
+    ctx.stroke();
+  }
+
+  // ── LEGS (straddling broom) ───────────────────────────────────────────────
+  ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+  // Left leg (far side, slightly behind)
+  ctx.beginPath();
+  ctx.moveTo(-6, 14);
+  ctx.quadraticCurveTo(-16, 20, -12, broomY + 3);
+  ctx.stroke();
+  // Right leg (near side)
+  ctx.beginPath();
+  ctx.moveTo(6, 14);
+  ctx.quadraticCurveTo(16, 20, 12, broomY + 3);
+  ctx.stroke();
+  // Black pointy shoes
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.ellipse(-12, broomY + 8, 9, 4, -0.25, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( 12, broomY + 8, 9, 4,  0.25, 0, Math.PI*2); ctx.fill();
+
+  // ── ROBE BODY ─────────────────────────────────────────────────────────────
+  // Scarlet Gryffindor robe, slightly flared at bottom
+  ctx.fillStyle = '#8b0000';
+  ctx.beginPath();
+  ctx.moveTo(-13, -6);
+  ctx.lineTo( 13, -6);
+  ctx.lineTo( 16,  16);
+  ctx.lineTo(-16,  16);
+  ctx.closePath();
+  ctx.fill();
+
+  // Gold trim lines
+  ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.5; ctx.lineCap = 'butt';
+  ctx.beginPath(); ctx.moveTo(-13,-6); ctx.lineTo(-16,16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo( 13,-6); ctx.lineTo( 16,16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-13, 5); ctx.lineTo( 13, 5); ctx.stroke();
+
+  // White shirt collar (V-shape)
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(-7, -6); ctx.lineTo(0, 4); ctx.lineTo(7, -6);
+  ctx.fill();
+
+  // Gryffindor tie — scarlet with gold stripe
+  ctx.fillStyle = '#cc0000';
+  ctx.beginPath();
+  ctx.moveTo(-3, -3); ctx.lineTo(3, -3);
+  ctx.lineTo(2, 11); ctx.lineTo(0, 13); ctx.lineTo(-2, 11);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(-2.5, 1, 5, 2.5);
+  ctx.fillRect(-2.0, 6, 4, 2);
+
+  // ── BACK ARM (grips broom handle, reaches DOWN to broomY) ─────────────────
+  ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-11, 1);
+  ctx.quadraticCurveTo(-20, 12, -16, broomY - 2);
+  ctx.stroke();
+  ctx.fillStyle = '#f5d49a';
+  ctx.beginPath(); ctx.arc(-16, broomY - 2, 5, 0, Math.PI*2); ctx.fill();
+
+  // ── FRONT ARM (outstretched forward / RIGHT, reaching for snitch) ──────────
+  // Extend arm fully when catching
+  const armReach = (state === 'catching') ? 52 : 40;
+  const armTipY  = (state === 'catching') ? -20 : -15;
+  ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(11, 0);
+  ctx.quadraticCurveTo(30, -10, armReach, armTipY);
+  ctx.stroke();
+  ctx.fillStyle = '#f5d49a';
+  ctx.beginPath(); ctx.arc(armReach, armTipY, 5, 0, Math.PI*2); ctx.fill();
+  // Snitch in hand glow when caught
+  if (catchPhase === 1) {
+    const pulse = 0.7 + 0.3 * Math.sin(catchTimer * 0.18);
+    ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 18 * pulse;
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath(); ctx.arc(armReach, armTipY, 7 * pulse, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── NECK ──────────────────────────────────────────────────────────────────
+  ctx.fillStyle = '#f5d49a';
+  ctx.fillRect(-4, -12, 8, 10);
+
+  // ── HEAD ──────────────────────────────────────────────────────────────────
+  const hy = -28;
+  ctx.fillStyle = '#f5d49a';
+  ctx.beginPath(); ctx.arc(0, hy, 18, 0, Math.PI*2); ctx.fill();
+
+  // ── HAIR (black, smooth, covers top and sides) ───────────────────────────
+  ctx.fillStyle = '#1a1a1a';
+  // Smooth cap covering the top half of the head
+  ctx.beginPath();
+  ctx.arc(0, hy, 18, Math.PI, 0);
+  ctx.fill();
+  // Smooth rounded bump at top-left (Harry's signature sweep to the side)
+  ctx.beginPath();
+  ctx.ellipse(-4, hy - 16, 13, 8, -0.25, Math.PI, 0);
+  ctx.fill();
+  // Side hair coming down the left cheek
+  ctx.beginPath();
+  ctx.moveTo(-16, hy + 6);
+  ctx.quadraticCurveTo(-21, hy + 14, -18, hy + 21);
+  ctx.quadraticCurveTo(-13, hy + 24, -10, hy + 16);
+  ctx.lineTo(-13, hy + 6);
+  ctx.fill();
+
+  // ── LIGHTNING SCAR ────────────────────────────────────────────────────────
+  ctx.strokeStyle = '#ff2200'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-2, hy-13);
+  ctx.lineTo( 2, hy-8);
+  ctx.lineTo(-2, hy-4);
+  ctx.lineTo( 2, hy+1);
+  ctx.stroke();
+
+  // ── EYES ──────────────────────────────────────────────────────────────────
+  ctx.fillStyle = '#1e7a1e'; // bright green
+  ctx.beginPath(); ctx.arc(-6.5, hy, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( 6.5, hy, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(-6.5, hy, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( 6.5, hy, 2.5, 0, Math.PI*2); ctx.fill();
+  // Eye shine
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.beginPath(); ctx.arc(-5.2, hy-1.5, 1.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( 7.8, hy-1.5, 1.2, 0, Math.PI*2); ctx.fill();
+
+  // ── ROUND GLASSES ─────────────────────────────────────────────────────────
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(-6.5, hy, 6.5, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc( 6.5, hy, 6.5, 0, Math.PI*2); ctx.stroke();
+  // Bridge between lenses
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, hy-1); ctx.lineTo(0, hy+1); ctx.stroke();
+  // Temple arms
+  ctx.beginPath(); ctx.moveTo(-13, hy-2); ctx.lineTo(-20, hy-4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo( 13, hy-2); ctx.lineTo( 20, hy-4); ctx.stroke();
+
+  ctx.restore();
+}
+
+// ── DRAW: BLUDGER ─────────────────────────────────────────────────────────────
+function drawBludger() {
+  if (!bludger || !bludger.active) return;
+  const {x,y,vx,vy,angle} = bludger;
+  const r = 16;
+
+  ctx.save();
+
+  // Motion trail
+  [0.07, 0.13, 0.21].forEach((a, i) => {
+    const tx = x - vx * (3 - i) * 3;
+    const ty = y - vy * (3 - i) * 3;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#888';
+    ctx.beginPath(); ctx.arc(tx, ty, r - i*2, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+
+  // Main ball
+  const bg = ctx.createRadialGradient(-5,-5,1,0,0,r);
+  bg.addColorStop(0,   '#828282');
+  bg.addColorStop(0.4, '#5a5a5a');
+  bg.addColorStop(1,   '#111111');
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+
+  // Iron bands
+  ctx.strokeStyle = '#444'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(0,0,r,r*0.35,0,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0,0,r*0.35,r,Math.PI/2,0,Math.PI*2); ctx.stroke();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.beginPath(); ctx.arc(-5,-5,5,0,Math.PI*2); ctx.fill();
+
+  ctx.restore();
+  ctx.restore();
+}
+
+// ── PARTICLES ─────────────────────────────────────────────────────────────────
+function spawnBurst(x, y) {
+  const colors = ['#ffd700','#ff8c00','#ff4500','#ffff44','#fff'];
+  for (let i = 0; i < 35; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = 2 + Math.random() * 7;
+    particles.push({
+      x, y,
+      vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+      r: 3 + Math.random()*5,
+      alpha: 1,
+      color: colors[Math.floor(Math.random()*colors.length)]
+    });
+  }
+}
+function updateParticles() {
+  particles = particles.filter(p => p.alpha > 0.02);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.12;
+    p.alpha *= 0.95;
+    p.r     *= 0.97;
+  });
+}
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ── CONFETTI ──────────────────────────────────────────────────────────────────
+function spawnConfetti() {
+  const pal = ['#ffd700','#ff0000','#8b0000','#ff8c00','#ffffff','#ae0001'];
+  for (let i = 0; i < 130; i++) {
+    confetti.push({
+      x: Math.random() * 900,
+      y: -20 - Math.random() * 220,
+      vx: (Math.random()-0.5)*3,
+      vy: 2 + Math.random()*3.5,
+      w:  8 + Math.random()*10,
+      h:  4 + Math.random()*6,
+      angle: Math.random()*Math.PI,
+      va:   (Math.random()-0.5)*0.16,
+      color: pal[Math.floor(Math.random()*pal.length)]
+    });
+  }
+}
+function tickConfetti() {
+  const cc = document.getElementById('confettiCanvas');
+  if (!cc || cc.style.display === 'none') return;
+  const cctx = cc.getContext('2d');
+  cctx.clearRect(0,0,900,600);
+  confetti.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.angle += p.va;
+    cctx.save();
+    cctx.translate(p.x, p.y);
+    cctx.rotate(p.angle);
+    cctx.fillStyle = p.color;
+    cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    cctx.restore();
+  });
+  confetti = confetti.filter(p => p.y < 660);
+  if (confetti.length < 25 && state === 'victory') spawnConfetti();
+}
+
+// ── QUESTION TIMER TICK ───────────────────────────────────────────────────────
+function tickQuestionTimer() {
+  if (!qData || qData.answered) return;
+  const elapsed = Date.now() - qData.startTime;
+  const ratio   = Math.max(0, 1 - elapsed / qData.timeLimit);
+  const bar = document.getElementById('timerBar');
+  bar.style.width = (ratio * 100) + '%';
+  if      (ratio > 0.5)  bar.style.background = '#00cc44';
+  else if (ratio > 0.25) bar.style.background = '#ffaa00';
+  else                   bar.style.background = '#cc2200';
+
+  if (ratio <= 0) {
+    // TIMEOUT
+    qData.answered = true;
+    const ci = qData.cIdx;
+    document.getElementById(ci === 0 ? 'btnA' : 'btnB').classList.add('correct');
+    document.getElementById(ci === 1 ? 'btnA' : 'btnB').classList.add('wrong');
+    if (bludger && bludger.active && !bludger.hit) {
+      bludger.hit = true;
+      bludger.x = HARRY_X;
+      bludger.y = HARRY_Y + harryDodge;
+    }
+    qPending = true;
+    qCorrect = false;
+    qTimer   = 90;
+    loseLife();
+  }
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+function gameLoop() {
+  requestAnimationFrame(gameLoop);
+  ctx.clearRect(0, 0, W, H);
+
+  const inactive = state === 'start' || state === 'levelDone' ||
+                   state === 'gameOver' || state === 'victory';
+
+  // ── SCROLL ──
+  if (state === 'playing' || state === 'question') {
+    const spd = lvlScrollSpeed + (harryBoost > 0 ? 0.4 : 0);
+    scrollX += spd;
+    // No hard cap — world scrolls freely so there's no visual freeze
+    if (harryBoost > 0) harryBoost--;
+  }
+  if (state === 'catching') {
+    if (catchPhase === 0) {
+      // ── Phase 0: Harry accelerates toward the snitch ──
+      lvlScrollSpeed = Math.min(lvlScrollSpeed + 0.012, 2.4);
+      scrollX += lvlScrollSpeed;
+      const snitchSX = catchWorldX - scrollX;  // snitch screen x
+      // Slow down as Harry's hand (HARRY_X+40) closes in on snitch
+      if (snitchSX < HARRY_X + 120) {
+        lvlScrollSpeed = Math.max(lvlScrollSpeed - 0.06, 0.3);
+      }
+      if (snitchSX <= HARRY_X + 42) {
+        // CAUGHT!
+        catchPhase = 1;
+        catchTimer = 100;
+        for (let i = 0; i < 5; i++) spawnBurst(HARRY_X + 30 + i*6, HARRY_Y - 18 - i*4);
+      }
+    } else {
+      // ── Phase 1: Hold snitch in hand, then victory ──
+      catchTimer--;
+      if (catchTimer <= 0) {
+        transitionTo('victory');
+        return;
+      }
+    }
+  }
+
+  // ── HARRY DODGE ──
+  if (harryDodgeTimer > 0) {
+    harryDodgeTimer--;
+    const prog = 1 - harryDodgeTimer / 40;
+    harryDodge = harryDodgeDir * 65 * Math.sin(prog * Math.PI);
+    if (harryDodgeTimer === 0) harryDodge = 0;
+  }
+  if (harryHit && harryHitTimer > 0) {
+    harryHitTimer--;
+    if (harryHitTimer === 0) harryHit = false;
+  }
+
+  // ── BLUDGER ──
+  if (bludger && bludger.active && !bludger.hit) {
+    bludger.x += bludger.vx;
+    bludger.y += bludger.vy;
+    bludger.angle += bludger.spin;
+    if (bludger.deflectCountdown > 0) {
+      bludger.deflectCountdown--;
+      if (bludger.deflectCountdown === 0) {
+        bludger.deflected = true;
+        bludger.vy = -8 - Math.random() * 5;
+        bludger.vx = (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 3);
+      }
+    }
+    if (bludger.deflected) {
+      bludger.vy += 0.35;
+      if (bludger.y > H+60 || bludger.x < -60 || bludger.x > W+60) bludger.active = false;
+    } else {
+      if (bludger.x < -30) bludger.active = false;
+    }
+  }
+
+  // ── QUESTION RESOLVE COUNTDOWN ──
+  if (qPending) {
+    qTimer--;
+    if (qTimer <= 0) {
+      qPending = false;
+      hideQuestion();
+      bludger = null;
+      questionsAnswered++;
+      refreshHUD();
+
+      if (lives <= 0) {
+        // already transitioned to gameOver via loseLife timeout
+      } else if (questionsAnswered >= totalQsThisLevel) {
+        if (currentLevel >= LEVELS.length - 1) {
+          transitionTo('catching');
+        } else {
+          transitionTo('levelDone');
+        }
+      } else if (state !== 'gameOver' && state !== 'catching') {
+        state = 'playing';
+        scheduleNextQ();
+      }
+    }
+  }
+
+  // ── QUESTION TIMER ──
+  if (state === 'question') tickQuestionTimer();
+
+  // ── CATCHING ALPHA (fade in goal posts from zero) ──
+  if (state === 'catching' && catchAlpha < 1) {
+    catchAlpha = Math.min(1, catchAlpha + 0.018);
+  }
+
+  // ── DRAW ──
+  drawBg();
+  // Goal posts: only at start of level 1 and at end (catching sequence)
+  drawGoalPosts(120);
+  if (state === 'catching') {
+    drawGoalPosts(catchWorldX, catchAlpha);
+    drawSnitch();
+  }
+  // Red screen flash when hit
+  if (harryHit && Math.floor(harryHitTimer / 5) % 2 === 0) {
+    ctx.fillStyle = 'rgba(220,0,0,0.22)';
+    ctx.fillRect(0, 0, W, H);
+  }
+  drawBludger();
+  drawHarry();
+  drawParticles();
+  updateParticles();
+
+  snitchT++;
+  snitchGl += 0.055;
+
+  refreshHUD();
+  tickConfetti();
+}
+
+// ── BUTTON LISTENERS ──────────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', () => {
+  getAudio();
+  startBgMusic();
+  initGame();
+  transitionTo('playing');
+});
+document.getElementById('flyOnBtn').addEventListener('click', () => {
+  currentLevel++;
+  transitionTo('playing');
+});
+document.getElementById('tryAgainBtn').addEventListener('click', () => {
+  initGame();
+  startBgMusic();
+  transitionTo('playing');
+});
+document.getElementById('playAgainBtn').addEventListener('click', () => {
+  initGame();
+  startBgMusic();
+  transitionTo('playing');
+});
+document.getElementById('stopBtn').addEventListener('click', () => {
+  stopBgMusic();
+  initGame();
+  transitionTo('start');
+});
+document.getElementById('musicToggleBtn').addEventListener('click', () => {
+  musicEnabled = !musicEnabled;
+  const btn = document.getElementById('musicToggleBtn');
+  if (musicEnabled) {
+    btn.textContent = '♪ Music: ON';
+    btn.className = 'toggleBtn on';
+    if (state === 'playing' || state === 'question' || state === 'catching') startBgMusic();
+  } else {
+    btn.textContent = '♪ Music: OFF';
+    btn.className = 'toggleBtn off';
+    bgAudio.pause();
+  }
+});
+document.getElementById('sfxToggleBtn').addEventListener('click', () => {
+  sfxEnabled = !sfxEnabled;
+  const btn = document.getElementById('sfxToggleBtn');
+  btn.textContent = sfxEnabled ? '♦ Sounds: ON' : '♦ Sounds: OFF';
+  btn.className   = sfxEnabled ? 'toggleBtn on'  : 'toggleBtn off';
+});
+document.getElementById('lbOpenBtn').addEventListener('click', () => showLeaderboard(false));
+document.getElementById('victoryLbBtn').addEventListener('click', () => showLeaderboard(true));
+document.getElementById('lbBackBtn').addEventListener('click', hideLeaderboard);
+document.getElementById('lbResetBtn').addEventListener('click', async () => {
+  if (!confirm('Reset all Quidditch scores? This cannot be undone.')) return;
+  const password = prompt('Enter admin password:');
+  if (!password) return;
+  const btn = document.getElementById('lbResetBtn');
+  btn.textContent = 'Resetting...'; btn.disabled = true;
+  try {
+    await sbFetch('rpc/reset_leaderboard', {
+      method: 'POST',
+      body: JSON.stringify({ mode_param: 'quidditch', admin_password: password }),
+    });
+    await renderLeaderboard();
+  } catch(e) {
+    alert('Reset failed – wrong password or connection error.');
+  } finally {
+    btn.textContent = '\uD83D\uDDD1 Reset Scores'; btn.disabled = false;
+  }
+});
+document.getElementById('btnA').addEventListener('click', () => {
+  if (state === 'question') handleAnswer(0);
+});
+document.getElementById('btnB').addEventListener('click', () => {
+  if (state === 'question') handleAnswer(1);
+});
+
+// ── KEYBOARD ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (state === 'question') {
+    if      (['ArrowLeft', 'a','A','1'].includes(e.key)) handleAnswer(0);
+    else if (['ArrowRight','d','D','2'].includes(e.key)) handleAnswer(1);
+  }
+  if (['Enter',' '].includes(e.key)) {
+    if      (state === 'start')     document.getElementById('startBtn').click();
+    else if (state === 'levelDone') document.getElementById('flyOnBtn').click();
+    else if (state === 'gameOver')  document.getElementById('tryAgainBtn').click();
+    else if (state === 'victory')   document.getElementById('playAgainBtn').click();
+  }
+});
+
+// ── RESPONSIVE ────────────────────────────────────────────────────────────────
+function doScale() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  // Scale up to 1.5× on large screens; shrink to fit on small screens
+  const sc = Math.min(1.5, vw / 900, vh / 600);
+  const wrapper = document.getElementById('gameWrapper');
+  wrapper.style.transform = `scale(${sc})`;
+  wrapper.style.transformOrigin = 'center center';
+  // Expand margins so flexbox layout accounts for the visually larger element
+  const mh = Math.round((900 * sc - 900) / 2);
+  const mv = Math.round((600 * sc - 600) / 2);
+  wrapper.style.margin = `${mv}px ${mh}px`;
+}
+window.addEventListener('resize', doScale);
+doScale();
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+transitionTo('start');
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

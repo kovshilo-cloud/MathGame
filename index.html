@@ -233,6 +233,7 @@
 <button class="toggleBtn on"  id="sfxToggleBtn">♦ Sounds: ON</button>
 <button class="modeBtn active"   id="modeAddBtn">+ Addition</button>
 <button class="modeBtn inactive" id="modeMultBtn">x Times Tables</button>
+<button class="modeBtn inactive" id="modeQuidBtn">🧹 Quidditch</button>
 <button id="restartBtn">⏹</button>
 <button class="lbBtn" id="lbAddBtn">🏆 Addition</button>
 <button class="lbBtn" id="lbMultBtn">🏆 Times Tables</button>
@@ -1352,6 +1353,7 @@ function updBtn() {
   const sTb = document.getElementById('sfxToggleBtn');
   const mAb = document.getElementById('modeAddBtn');
   const mMb = document.getElementById('modeMultBtn');
+  const mQb = document.getElementById('modeQuidBtn');
   const rb  = document.getElementById('restartBtn');
   const r   = canvas.getBoundingClientRect();
   const sx  = r.width/CW, sy = r.height/CH;
@@ -1377,7 +1379,7 @@ function updBtn() {
     const bw=200*sx, bh=52*sy;
     b.style.width=bw+'px'; b.style.height=bh+'px';
     b.style.left=(r.left+(CW/2)*sx-bw/2)+'px';
-    b.style.top =(r.top+444*sy)+'px';
+    b.style.top =(r.top+484*sy)+'px';
     b.style.fontSize=Math.max(13,19*sx)+'px';
     b.style.borderRadius=(28*sx)+'px';
   }
@@ -1424,6 +1426,13 @@ function updBtn() {
   mMb.style.top   = (r.top  + 398*sy)+'px';
   mMb.style.fontSize = modeFont;
 
+  const quidW = 150*sx, quidH = 34*sy;
+  mQb.style.display = isStart ? 'flex' : 'none';
+  mQb.style.width = quidW+'px'; mQb.style.height = quidH+'px';
+  mQb.style.left  = (r.left + CW/2*sx - quidW/2)+'px';
+  mQb.style.top   = (r.top  + 438*sy)+'px';
+  mQb.style.fontSize = modeFont;
+
   // Leaderboard shortcut buttons — only on START screen
   const lbAb = document.getElementById('lbAddBtn');
   const lbMb = document.getElementById('lbMultBtn');
@@ -1433,13 +1442,13 @@ function updBtn() {
   lbAb.style.display = isStart ? 'flex' : 'none';
   lbAb.style.width = lbW+'px'; lbAb.style.height = lbH+'px';
   lbAb.style.left  = (r.left + (CW/2 - 66)*sx - lbW/2)+'px';
-  lbAb.style.top   = (r.top  + 504*sy)+'px';
+  lbAb.style.top   = (r.top  + 544*sy)+'px';
   lbAb.style.fontSize = lbFont;
 
   lbMb.style.display = isStart ? 'flex' : 'none';
   lbMb.style.width = lbW+'px'; lbMb.style.height = lbH+'px';
   lbMb.style.left  = (r.left + (CW/2 + 66)*sx - lbW/2)+'px';
-  lbMb.style.top   = (r.top  + 504*sy)+'px';
+  lbMb.style.top   = (r.top  + 544*sy)+'px';
   lbMb.style.fontSize = lbFont;
 
   // Back + Reset buttons — only on LEADERBOARD screen
@@ -1516,11 +1525,16 @@ function init() {
     gs.mode = 'addition';
     document.getElementById('modeAddBtn').className  = 'modeBtn active';
     document.getElementById('modeMultBtn').className = 'modeBtn inactive';
+    document.getElementById('modeQuidBtn').className = 'modeBtn inactive';
   });
   document.getElementById('modeMultBtn').addEventListener('click', () => {
     gs.mode = 'multiplication';
     document.getElementById('modeAddBtn').className  = 'modeBtn inactive';
     document.getElementById('modeMultBtn').className = 'modeBtn active';
+    document.getElementById('modeQuidBtn').className = 'modeBtn inactive';
+  });
+  document.getElementById('modeQuidBtn').addEventListener('click', () => {
+    window.location.href = 'quidditch.html';
   });
 
   hitAudio = new Audio(fileUrl("The memory behind our Expecto Patronum #HarryPotter #Dementors #Patronus.mp3"));
