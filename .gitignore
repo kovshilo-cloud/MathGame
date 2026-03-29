@@ -3,3 +3,4 @@
 *.jpeg
 Thumbs.db
 .DS_Store
+supabase_setup.sql
