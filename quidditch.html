@@ -1769,7 +1769,12 @@ if (_autoStart) {
   const backLink = document.querySelector('#startScreen a');
   if (backLink) backLink.style.display = 'none';
   initGame();
+  // Mobile browsers block audio in iframes until a gesture happens inside the iframe.
+  // Try immediately (works on desktop), then retry on first touch/click inside the iframe.
   startBgMusic();
+  function _unlockMusic() { if (musicEnabled) startBgMusic(); }
+  document.addEventListener('touchstart', _unlockMusic, { once: true, passive: true });
+  document.addEventListener('click',      _unlockMusic, { once: true });
   transitionTo('playing');
 } else {
   transitionTo('start');
