@@ -1677,8 +1677,12 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
 });
 document.getElementById('stopBtn').addEventListener('click', () => {
   stopBgMusic();
-  initGame();
-  transitionTo('start');
+  if (_autoStart && window.parent !== window) {
+    try { window.parent.document.getElementById('quidBackBtn').click(); } catch(e) {}
+  } else {
+    initGame();
+    transitionTo('start');
+  }
 });
 document.getElementById('musicToggleBtn').addEventListener('click', () => {
   musicEnabled = !musicEnabled;
@@ -1759,7 +1763,17 @@ window.addEventListener('resize', doScale);
 doScale();
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
-transitionTo('start');
+const _autoStart = new URLSearchParams(window.location.search).get('autostart') === '1';
+if (_autoStart) {
+  // Hide the "← Math Game Menu" link — parent page handles navigation
+  const backLink = document.querySelector('#startScreen a');
+  if (backLink) backLink.style.display = 'none';
+  initGame();
+  startBgMusic();
+  transitionTo('playing');
+} else {
+  transitionTo('start');
+}
 requestAnimationFrame(gameLoop);
 </script>
 </body>

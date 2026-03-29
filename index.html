@@ -237,8 +237,13 @@
 <button id="restartBtn">⏹</button>
 <button class="lbBtn" id="lbAddBtn">🏆 Addition</button>
 <button class="lbBtn" id="lbMultBtn">🏆 Times Tables</button>
+<button class="lbBtn" id="lbQuidLbBtn">🏆 Quidditch</button>
 <button id="lbBackBtn">← Main Menu</button>
 <button id="lbResetBtn">🗑 Reset Scores</button>
+<div id="quidOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999;background:#1a3a6a;">
+  <iframe id="quidFrame" src="" style="width:100%;height:100%;border:none;"></iframe>
+  <button id="quidBackBtn" style="position:fixed;top:12px;left:12px;z-index:1000;padding:7px 16px;font-size:14px;font-family:Georgia,serif;font-weight:bold;color:rgba(255,215,0,0.85);background:rgba(0,0,30,0.88);border:1.5px solid rgba(255,215,0,0.5);border-radius:8px;cursor:pointer;">← Menu</button>
+</div>
 
 <script>
 // ============================================================
@@ -921,7 +926,7 @@ function drawStart(ctx, t) {
 
 function drawLeaderboardScreen(ctx, mode) {
   ctx.fillStyle='rgba(5,0,17,0.95)'; ctx.fillRect(0,0,CW,CH);
-  const modeLabel = mode === 'multiplication' ? 'Times Tables' : 'Addition';
+  const modeLabel = mode === 'multiplication' ? 'Times Tables' : mode === 'quidditch' ? 'Quidditch Fractions' : 'Addition';
 
   // Title
   ctx.textAlign='center';
@@ -1434,22 +1439,29 @@ function updBtn() {
   mQb.style.fontSize = modeFont;
 
   // Leaderboard shortcut buttons — only on START screen
-  const lbAb = document.getElementById('lbAddBtn');
-  const lbMb = document.getElementById('lbMultBtn');
-  const lbW = 120*sx, lbH = 30*sy;
-  const lbFont = Math.max(9, 11*sx)+'px';
+  const lbAb  = document.getElementById('lbAddBtn');
+  const lbMb  = document.getElementById('lbMultBtn');
+  const lbQb  = document.getElementById('lbQuidLbBtn');
+  const lbW = 96*sx, lbH = 30*sy;
+  const lbFont = Math.max(8, 10*sx)+'px';
 
   lbAb.style.display = isStart ? 'flex' : 'none';
   lbAb.style.width = lbW+'px'; lbAb.style.height = lbH+'px';
-  lbAb.style.left  = (r.left + (CW/2 - 66)*sx - lbW/2)+'px';
+  lbAb.style.left  = (r.left + (CW/2 - 108)*sx - lbW/2)+'px';
   lbAb.style.top   = (r.top  + 544*sy)+'px';
   lbAb.style.fontSize = lbFont;
 
   lbMb.style.display = isStart ? 'flex' : 'none';
   lbMb.style.width = lbW+'px'; lbMb.style.height = lbH+'px';
-  lbMb.style.left  = (r.left + (CW/2 + 66)*sx - lbW/2)+'px';
+  lbMb.style.left  = (r.left + CW/2*sx - lbW/2)+'px';
   lbMb.style.top   = (r.top  + 544*sy)+'px';
   lbMb.style.fontSize = lbFont;
+
+  lbQb.style.display = isStart ? 'flex' : 'none';
+  lbQb.style.width = lbW+'px'; lbQb.style.height = lbH+'px';
+  lbQb.style.left  = (r.left + (CW/2 + 108)*sx - lbW/2)+'px';
+  lbQb.style.top   = (r.top  + 544*sy)+'px';
+  lbQb.style.fontSize = lbFont;
 
   // Back + Reset buttons — only on LEADERBOARD screen
   const lbBk  = document.getElementById('lbBackBtn');
@@ -1534,7 +1546,12 @@ function init() {
     document.getElementById('modeQuidBtn').className = 'modeBtn inactive';
   });
   document.getElementById('modeQuidBtn').addEventListener('click', () => {
-    window.location.href = 'quidditch.html';
+    document.getElementById('quidFrame').src = 'quidditch.html?autostart=1';
+    document.getElementById('quidOverlay').style.display = 'block';
+  });
+  document.getElementById('quidBackBtn').addEventListener('click', () => {
+    document.getElementById('quidFrame').src = '';
+    document.getElementById('quidOverlay').style.display = 'none';
   });
 
   hitAudio = new Audio(fileUrl("The memory behind our Expecto Patronum #HarryPotter #Dementors #Patronus.mp3"));
@@ -1569,6 +1586,7 @@ function init() {
   }
   document.getElementById('lbAddBtn').addEventListener('click',  () => openLeaderboard('addition'));
   document.getElementById('lbMultBtn').addEventListener('click', () => openLeaderboard('multiplication'));
+  document.getElementById('lbQuidLbBtn').addEventListener('click', () => openLeaderboard('quidditch'));
 
   document.getElementById('lbBackBtn').addEventListener('click', () => {
     gs.phase = 'START';
